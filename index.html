@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>SKY QUEST ADVENTURE 3D</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#75c9f4;font-family:Arial,sans-serif;color:#fff}canvas{display:block}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:4}
+.pill{position:absolute;top:14px;background:#102f50d9;border:1px solid #ffffff55;border-radius:13px;padding:10px 14px;font-weight:bold;box-shadow:0 4px 14px #1235}
+#hearts{left:14px;font-size:20px;letter-spacing:2px;color:#ff6b8b}#coins{left:126px}#stage{left:218px}#score{left:324px}
+#menuBtn{position:absolute;right:14px;top:14px;pointer-events:auto;border:0;border-radius:12px;background:#123d66;color:#fff;font-size:24px;width:52px;height:48px}
+#panel{position:fixed;z-index:8;inset:0;display:grid;place-items:center;background:linear-gradient(135deg,#0a3154cc,#061a31dd);padding:16px}
+.card{width:min(560px,94vw);max-height:92vh;overflow:auto;background:linear-gradient(145deg,#174c76f2,#0b2849f5);border:1px solid #8edbff88;border-radius:24px;padding:28px;box-shadow:0 20px 70px #001a35aa;text-align:center}
+.logo{font-size:clamp(30px,7vw,54px);font-weight:1000;line-height:1;color:#ffe36e;text-shadow:0 4px #b66c25,0 8px 20px #001b3c;letter-spacing:1px}.sub{color:#bfeaff;margin:12px 0 20px;line-height:1.5}
+button{cursor:pointer;font-weight:bold}.mainbtn{border:0;border-radius:14px;background:linear-gradient(#ffe77a,#ffb52e);color:#402500;padding:15px 30px;font-size:19px;box-shadow:0 5px #b56a19;margin:6px}.smallbtn{border:1px solid #8acfff88;background:#ffffff12;color:#fff;border-radius:10px;padding:10px 15px;margin:5px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:16px 0;text-align:left}.info{background:#ffffff12;border:1px solid #ffffff22;border-radius:12px;padding:11px;font-size:13px;line-height:1.4}
+#toast{position:fixed;z-index:6;left:50%;top:82px;transform:translateX(-50%);background:#092d4fe8;border:1px solid #8edbff;border-radius:20px;padding:10px 18px;font-weight:bold;opacity:0;transition:.25s;pointer-events:none;white-space:nowrap}
+#bottomHelp{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:#0a2e4dcc;padding:9px 14px;border-radius:12px;font-size:12px;white-space:nowrap}
+#touch{position:fixed;z-index:5;inset:auto 0 22px 0;display:none;justify-content:space-between;padding:0 18px;pointer-events:none}
+.pad{display:flex;gap:9px;pointer-events:auto}.touchbtn{width:58px;height:58px;border-radius:17px;border:1px solid #ffffff77;background:#123e67bb;color:white;font-size:23px;touch-action:none}
+#jump{width:76px;height:76px;border-radius:50%;background:#f3a82cdd;color:#442600}
+#pausePanel{position:fixed;z-index:7;inset:0;background:#06182c99;display:none;place-items:center}
+#loading{font-size:13px;color:#bdeaff;margin-top:12px}
+@media(max-width:650px){.pill{top:8px;padding:8px 9px;font-size:12px}#hearts{left:8px;font-size:16px}#coins{left:91px}#stage{left:160px}#score{left:235px}#menuBtn{right:8px;top:8px;width:43px;height:42px}#bottomHelp{display:none}.card{padding:20px}.grid{grid-template-columns:1fr 1fr}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>
+</head>
+<body>
+<div id="hud">
+ <div class="pill" id="hearts">♥ ♥ ♥</div><div class="pill" id="coins">🪙 0</div><div class="pill" id="stage">🏁 0 / 25</div><div class="pill" id="score">🏆 0</div>
+ <button id="menuBtn">Ⅱ</button><div id="bottomHelp">WASD / Arrows: move · SPACE: jump · SHIFT: dash · Mouse: look around</div>
+</div>
+<div id="toast"></div>
+<div id="panel"><div class="card">
+ <div class="logo">SKY QUEST<br>ADVENTURE</div>
+ <div class="sub">A colorful 3D island adventure made with Kenney game assets.<br>Collect coins, cross floating platforms and reach the sky portal!</div>
+ <button class="mainbtn" id="play">▶ PLAY NOW</button>
+ <div class="grid"><div class="info">🎮 <b>Movement</b><br>WASD or arrow keys</div><div class="info">⬆ <b>Jump</b><br>Space · double jump</div><div class="info">⚡ <b>Dash</b><br>Shift while moving</div><div class="info">🪙 <b>Mission</b><br>Collect coins & reach the portal</div></div>
+ <div id="loading">Loading 3D world and Kenney models…</div>
+</div></div>
+<div id="pausePanel"><div class="card"><div class="logo" style="font-size:34px">PAUSED</div><p class="sub">Take a breath, adventurer.</p><button class="mainbtn" id="resume">RESUME</button><button class="smallbtn" id="restart">RESTART</button><button class="smallbtn" id="home">MAIN MENU</button></div></div>
+<div id="touch"><div class="pad"><button class="touchbtn" data-key="left">◀</button><button class="touchbtn" data-key="right">▶</button><button class="touchbtn" data-key="forward">▲</button><button class="touchbtn" data-key="back">▼</button></div><button class="touchbtn" id="jump">⬆</button></div>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {FBXLoader} from 'three/addons/loaders/FBXLoader.js';
+
+const $=id=>document.getElementById(id);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x83d4ff);scene.fog=new THREE.Fog(0x83d4ff,65,190);
+const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,.1,400);
+const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance'});
+renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.25));renderer.shadowMap.enabled=false;
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
+document.body.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xd9f4ff,0x52643d,2.1));
+const sun=new THREE.DirectionalLight(0xfff1d2,2.2);sun.position.set(-30,60,35);scene.add(sun);
+const mat=(c,r=.9,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+const mats={grass:mat(0x66c94f),soil:mat(0x8b5a37),stone:mat(0x778b9b),water:mat(0x28a8d3,.45,.1),gold:mat(0xffc928,.3,.5),white:mat(0xffffff),dark:mat(0x263c4d)};
+const loader=new GLTFLoader(),fbxLoader=new FBXLoader(),models={};let loaded=0,total=0;
+const assetNames=[
+'platform-character-oobi.glb','platform-character-oodi.glb','platform-character-ooli.glb','platform-character-oopi.glb','platform-character-oozi.glb',
+'platform-coin-gold.glb','platform-heart.glb','platform-chest.glb','platform-tree-pine.glb','platform-tree.glb','platform-rocks.glb','platform-flowers.glb','platform-barrel.glb','platform-spring.glb','platform-saw.glb','platform-trap-spikes.glb','platform-flag.glb',
+'cars-race.glb','cars-sedan.glb','cars-taxi.glb','cars-ambulance.glb','cars-police.glb','cars-firetruck.glb','cars-kart-oobi.glb',
+'trains-train-diesel-a.glb','trains-train-electric-city-a.glb','trains-train-tram-classic.glb','water-boat-sail-a.glb','water-boat-speed-a.glb','water-ship-small.glb','water-buoy.glb'
+];
+total=assetNames.length;
+const loadingText=$('loading');
+function loadAssets(){return Promise.all(assetNames.map(name=>new Promise(resolve=>{
+ loader.load('assets/'+name,g=>{models[name]=g.scene;loaded++;loadingText.textContent=`Loading Kenney models… ${loaded}/${total}`;resolve();},undefined,()=>{loaded++;resolve();});
+})))}
+function cloneModel(name,scale=1){const src=models[name];if(!src)return null;const o=src.clone(true);o.traverse(n=>{if(n.isMesh){n.castShadow=false;n.receiveShadow=false;if(n.material)n.material=n.material.clone();}});const box=new THREE.Box3().setFromObject(o),size=box.getSize(new THREE.Vector3()),max=Math.max(size.x,size.y,size.z)||1;o.scale.multiplyScalar(scale/max);o.position.y-=box.min.y*(scale/max);return o;}
+const pendingModels=[];
+function addModel(name,pos,scale=1,rot=0){let o=cloneModel(name,scale);if(!o){o=new THREE.Group();pendingModels.push({group:o,name,scale,rot});}o.position.x=pos.x;o.position.y+=pos.y;o.position.z=pos.z;o.rotation.y=rot;scene.add(o);return o;}
+function hydratePendingModels(){for(const item of pendingModels){const real=cloneModel(item.name,item.scale);if(real){item.group.add(real);}}pendingModels.length=0;}
+function box(w,h,d,material,x,y,z){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);o.position.set(x,y,z);scene.add(o);return o;}
+function cylinder(rt,rb,h,material,x,y,z,seg=8){const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),material);o.position.set(x,y,z);scene.add(o);return o;}
+const water= new THREE.Mesh(new THREE.PlaneGeometry(500,500),mats.water);water.rotation.x=-Math.PI/2;water.position.y=-4;scene.add(water);
+// clouds
+for(let i=0;i<22;i++){let g=new THREE.Group();let x=(Math.random()-.5)*180,z=-Math.random()*170,y=17+Math.random()*18;for(let j=0;j<4;j++){let s=new THREE.Mesh(new THREE.SphereGeometry(2+Math.random()*2,8,6),new THREE.MeshStandardMaterial({color:0xffffff,roughness:1}));s.position.set(j*2.6,Math.random()*1.1,Math.random()*1.4);g.add(s);}g.position.set(x,y,z);scene.add(g);}
+// start island
+box(27,2,27,mats.soil,0,-1,9);box(27.3,.45,27.3,mats.grass,0,.12,9);
+for(let i=0;i<8;i++){let x=(i%4)*5.8-8.7,z=4+Math.floor(i/4)*8;addModel(i%2?'platform-tree-pine.glb':'platform-tree.glb',{x,y:.35,z},4,Math.random()*6);}
+addModel('platform-rocks.glb',{x:-10,y:.35,z:15},3.5);addModel('platform-flowers.glb',{x:10,y:.35,z:15},2.7);
+addModel('cars-race.glb',{x:-6,y:.35,z:6},3,Math.PI/2);addModel('cars-taxi.glb',{x:7,y:.35,z:11},3,-Math.PI/2);
+addModel('trains-train-diesel-a.glb',{x:0,y:.35,z:20},4,Math.PI);
+addModel('water-boat-sail-a.glb',{x:-15,y:-2.2,z:25},5,.5);
+addModel('water-ship-small.glb',{x:17,y:-2.1,z:29},5,-.5);
+const startPad=box(5,.6,5,mat(0xffd54b),0,.65,0);box(4.7,.12,4.7,mat(0xffed85),0,1,0);
+// path platforms 25
+const platforms=[],coins=[],hazards=[],checkpoints=[];
+function makePlatform(x,y,z,w=4.5,d=4.5,color=0x70d65b){box(w,.55,d,mats.soil,x,y-.32,z);box(w+.08,.22,d+.08,mat(color),x,y+.04,z);platforms.push({x,y:y+.12,z,w,d,checkpoint:false});}
+makePlatform(0,1,0,6,6,0x80df57);
+for(let i=1;i<=25;i++){
+ const x=Math.sin(i*1.37)*5.3, z=-i*5.7, y=1+i*.23;
+ const w=i%5===0?5.2:4.1,d=i%4===0?5.1:4.0;
+ makePlatform(x,y,z,w,d,i%3===0?0x77d9f1:(i%3===1?0x8be35d:0xffc95c));
+ if(i%5===0){platforms[platforms.length-1].checkpoint=true;checkpoints.push({x,y:y+.3,z});addModel('platform-flag.glb',{x:x+w*.35,y:y+.15,z},1.8);}
+ // coins placed between pads, above landing side
+ const c=addModel('platform-coin-gold.glb',{x:x+(i%2?1.2:-1.2),y:y+1.4,z:z-.3},1.2);
+ if(c)coins.push({obj:c,got:false});
+ if(i%4===0){let h=addModel('platform-saw.glb',{x:x,y:y+.8,z:z+1.25},1.6);if(h)hazards.push({obj:h,baseX:x,baseZ:z+1.25,phase:i});}
+}
+makePlatform(0,7,-151,11,11,0xffdc62);
+addModel('water-gate-finish.glb',{x:0,y:7.2,z:-151},8);
+addModel('platform-chest.glb',{x:0,y:7.4,z:-155},3);
+for(let i=0;i<9;i++){addModel(i%2?'platform-rocks.glb':'platform-tree-pine.glb',{x:(Math.random()-.5)*45,y:.1,z:-15-Math.random()*125},1.8+Math.random()*1.5);}
+// decorative track bridge across side of start island
+for(let i=0;i<6;i++){box(.22,.2,3,mat(0x514b47),-11,.4,2+i*3);box(1.4,.14,.18,mat(0x5b5d61),-11,.5,2+i*3);}
+addModel('trains-train-electric-city-a.glb',{x:-11,y:.65,z:10},3,Math.PI/2);
+addModel('cars-ambulance.glb',{x:11,y:.35,z:2},3,Math.PI/2);
+addModel('cars-police.glb',{x:11,y:.35,z:7},3,Math.PI/2);
+addModel('water-boat-speed-a.glb',{x:22,y:-2.3,z:-22},4,.2);
+addModel('water-buoy.glb',{x:-20,y:-2.1,z:-20},2);
+let player=new THREE.Group();scene.add(player);let playerVisual=null,avatar='platform-character-oobi.glb',heroMixer=null,heroActions={},activeHeroAction='';
+function fallbackPlayer(){const g=new THREE.Group();const body=new THREE.Mesh(new THREE.BoxGeometry(.85,1.05,.48),mat(0x168de0));body.position.y=.95;g.add(body);const head=new THREE.Mesh(new THREE.BoxGeometry(.68,.68,.65),mat(0xf1c49a));head.position.y=1.78;g.add(head);const legmat=mat(0x173f88);for(let x of [-.23,.23]){const leg=new THREE.Mesh(new THREE.BoxGeometry(.22,.65,.25),legmat);leg.position.set(x,.32,0);g.add(leg);}return g;}
+function setAvatar(name){if(playerVisual)player.remove(playerVisual);playerVisual=cloneModel(name,2.0)||fallbackPlayer();player.add(playerVisual);}
+function loadAnimatedHero(){
+ fbxLoader.load('assets/hero/characterMedium.fbx',hero=>{
+  const tex=new THREE.TextureLoader().load('assets/hero/skaterMaleA.png');tex.colorSpace=THREE.SRGBColorSpace;
+  hero.traverse(n=>{if(n.isMesh){n.castShadow=false;n.receiveShadow=false;n.material=new THREE.MeshStandardMaterial({map:tex,roughness:.82});}});
+  const b=new THREE.Box3().setFromObject(hero),sz=b.getSize(new THREE.Vector3()),factor=1.9/(sz.y||1);
+  hero.scale.setScalar(factor);hero.position.y=-b.min.y*factor;
+  if(playerVisual)player.remove(playerVisual);playerVisual=hero;player.add(hero);
+  heroMixer=new THREE.AnimationMixer(hero);
+  const playClip=(file,key)=>fbxLoader.load('assets/hero/'+file+'.fbx',anim=>{
+   if(anim.animations&&anim.animations[0]){const action=heroMixer.clipAction(anim.animations[0]);heroActions[key]=action;action.enabled=true;if(key==='idle'){action.play();activeHeroAction='idle';}}
+  },undefined,()=>{});
+  playClip('idle','idle');playClip('run','run');playClip('jump','jump');
+ },undefined,()=>{});
+}
+function setHeroMotion(){
+ if(!heroMixer)return;
+ const desired=!state.onGround?'jump':(Math.abs(state.vx)+Math.abs(state.vz)>.7?'run':'idle');
+ if(heroActions[desired]&&activeHeroAction!==desired){if(heroActions[activeHeroAction])heroActions[activeHeroAction].fadeOut(.12);heroActions[desired].reset().fadeIn(.12).play();activeHeroAction=desired;}
+}
+
+setAvatar(avatar);
+let state={x:0,y:1.25,z:0,vy:0,vx:0,vz:0,onGround:true,jumps:0,hearts:3,coins:0,score:0,stage:0,playing:false,paused:false,checkpoint:{x:0,y:1.25,z:0}};
+player.position.set(state.x,state.y-.15,state.z);
+const keys={};let yaw=0,drag=false,lastX=0,lastY=0,pitch=.18;
+function updateHUD(){$('hearts').textContent='♥ '.repeat(state.hearts)||'♡';$('coins').textContent='🪙 '+state.coins;$('stage').textContent='🏁 '+state.stage+' / 25';$('score').textContent='🏆 '+state.score;}
+function toast(t){const e=$('toast');e.textContent=t;e.style.opacity=1;clearTimeout(toast.timer);toast.timer=setTimeout(()=>e.style.opacity=0,1500);}
+function resetGame(){state.x=0;state.y=1.25;state.z=0;state.vy=0;state.vx=0;state.vz=0;state.onGround=true;state.jumps=0;state.hearts=3;state.coins=0;state.score=0;state.stage=0;state.checkpoint={x:0,y:1.25,z:0};coins.forEach(c=>{c.got=false;if(c.obj)c.obj.visible=true;});updateHUD();player.position.set(0,1.1,0);}
+function start(){resetGame();state.playing=true;state.paused=false;$('panel').style.display='none';$('pausePanel').style.display='none';$('touch').style.display=matchMedia('(pointer:coarse)').matches?'flex':'none';toast('Adventure started! Reach the first platform.');}
+function pause(){if(!state.playing)return;state.paused=true;$('pausePanel').style.display='grid';}
+$('play').onclick=start;$('resume').onclick=()=>{state.paused=false;$('pausePanel').style.display='none';};$('restart').onclick=start;$('home').onclick=()=>{state.playing=false;state.paused=false;$('pausePanel').style.display='none';$('panel').style.display='grid';};$('menuBtn').onclick=pause;
+function jump(){if(!state.playing||state.paused)return;if(state.jumps<2){state.vy=state.jumps===0?9.2:8.0;state.jumps++;state.onGround=false;}}
+window.addEventListener('keydown',e=>{keys[e.code]=true;if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();if(e.code==='Space'&&!e.repeat)jump();if(e.code==='Escape')state.paused?$('resume').click():pause();});
+window.addEventListener('keyup',e=>keys[e.code]=false);
+document.querySelectorAll('[data-key]').forEach(b=>{const k=b.dataset.key;const map={left:'ArrowLeft',right:'ArrowRight',forward:'ArrowUp',back:'ArrowDown'};b.addEventListener('pointerdown',e=>{e.preventDefault();keys[map[k]]=true;});['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>keys[map[k]]=false));});
+$('jump').addEventListener('pointerdown',e=>{e.preventDefault();jump();});
+renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'){drag=true;lastX=e.clientX;lastY=e.clientY;}});
+window.addEventListener('pointerup',()=>drag=false);
+window.addEventListener('pointermove',e=>{if(drag){yaw-=(e.clientX-lastX)*.004;pitch=Math.max(-.05,Math.min(.55,pitch+(e.clientY-lastY)*.002));lastX=e.clientX;lastY=e.clientY;}});
+function move(dt){
+ const forward=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0),side=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
+ const speed=(keys.ShiftLeft||keys.ShiftRight)?10:6.2;
+ const fx=Math.sin(yaw),fz=-Math.cos(yaw);
+ const tx=(side*Math.cos(yaw)+forward*fx)*speed,tz=(-side*Math.sin(yaw)+forward*fz)*speed;
+ state.vx=THREE.MathUtils.damp(state.vx,tx,10,dt);state.vz=THREE.MathUtils.damp(state.vz,tz,10,dt);
+ state.x+=state.vx*dt;state.z+=state.vz*dt;
+ state.vy-=22*dt;state.y+=state.vy*dt;
+ let landed=false;
+ // collision top of pads while falling
+ for(const p of platforms){if(state.vy<=0&&state.x>p.x-p.w/2-.35&&state.x<p.x+p.w/2+.35&&state.z>p.z-p.d/2-.35&&state.z<p.z+p.d/2+.35){const top=p.y+.12;if(state.y>=top-.28&&state.y+state.vy*dt<=top+.15){state.y=top+.02;state.vy=0;state.onGround=true;state.jumps=0;landed=true;if(p.checkpoint){state.checkpoint={x:p.x,y:top+.05,z:p.z};toast('Checkpoint saved!');p.checkpoint=false;}}}}
+ if(!landed)state.onGround=false;
+ if(state.y< -9){state.hearts--;updateHUD();if(state.hearts<=0){toast('Out of hearts — restarting at checkpoint');state.hearts=3;state.score=Math.max(0,state.score-100);}state.x=state.checkpoint.x;state.y=state.checkpoint.y;state.z=state.checkpoint.z;state.vy=0;state.vx=0;state.vz=0;state.jumps=0;}
+ // stage progression and coins
+ let stage=Math.max(0,Math.min(25,Math.floor(Math.max(0,-state.z)/5.7)));if(stage>state.stage){state.stage=stage;state.score+=50;updateHUD();}
+ for(const c of coins){if(!c.got&&c.obj){const p=c.obj.position;if(Math.hypot(state.x-p.x,state.y+1-p.y,state.z-p.z)<1.45){c.got=true;c.obj.visible=false;state.coins++;state.score+=100;updateHUD();toast('+100 points · Coin collected!');}}}
+ if(!state.hitCooldown){for(const h of hazards){if(h.obj&&Math.hypot(state.x-h.obj.position.x,state.y-h.obj.position.y,state.z-h.obj.position.z)<1.45){state.hitCooldown=1.2;state.hearts--;updateHUD();toast('Careful! Hazard hit · -1 heart');state.vy=5;break;}}}else state.hitCooldown=Math.max(0,state.hitCooldown-dt);
+ if(state.hearts<=0){state.hearts=3;state.x=state.checkpoint.x;state.y=state.checkpoint.y;state.z=state.checkpoint.z;state.vy=0;state.vx=0;state.vz=0;toast('Back to checkpoint!');updateHUD();}
+
+ if(state.z<-147&&state.y>5.5){state.playing=false;$('panel').style.display='grid';$('panel').querySelector('.sub').innerHTML='🏆 <b>YOU DID IT!</b><br>You reached the Sky Portal!<br>Coins: '+state.coins+' · Score: '+state.score;$('play').textContent='↻ PLAY AGAIN';}
+ player.position.set(state.x,state.y-.15,state.z);
+ if(Math.abs(state.vx)+Math.abs(state.vz)>.5){player.rotation.y=Math.atan2(state.vx,state.vz);}setHeroMotion();if(heroMixer)heroMixer.update(dt);
+}
+const clock=new THREE.Clock();
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.035);if(state.playing&&!state.paused){move(dt);hazards.forEach(h=>{h.obj.position.x=h.baseX+Math.sin(performance.now()*.0018+h.phase)*1.3;h.obj.rotation.y+=dt*2;});coins.forEach(c=>{if(!c.got&&c.obj){c.obj.rotation.y+=dt*1.7;c.obj.position.y+=Math.sin(performance.now()*.002+c.obj.position.z)*.002;}});}
+ const target=new THREE.Vector3(state.x,state.y+1.1,state.z);const dist=10;const offset=new THREE.Vector3(Math.sin(yaw)*dist,3.8+pitch*5,Math.cos(yaw)*dist);camera.position.lerp(target.clone().add(offset),.12);camera.lookAt(target);
+ renderer.render(scene,camera);}
+animate();
+loadAssets().then(()=>{hydratePendingModels();loadingText.textContent=`Ready · ${loaded} Kenney models loaded. Press PLAY.`;setAvatar(avatar);loadAnimatedHero();});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+window.skyQuestDiagnostics=()=>({loaded,total,assets:Object.keys(models),state:{...state}});
+</script>
+</body></html>
